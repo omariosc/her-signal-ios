@@ -1,0 +1,163 @@
+/* 
+  Localizable.strings
+  HerSignal
+
+  Created for HerSignal iOS App.
+  Copyright © 2024 HerSignal. All rights reserved.
+*/
+
+// MARK: - App General
+"app.name" = "HerSignal";
+"app.tagline" = "Your AI Safety Companion";
+
+// MARK: - Onboarding
+"onboarding.welcome.title" = "Welcome to HerSignal";
+"onboarding.welcome.subtitle" = "Your AI Safety Companion";
+"onboarding.welcome.description" = "HerSignal helps you feel safer in public spaces by generating realistic AI phone calls that can deter potential threats.";
+
+"onboarding.howItWorks.title" = "How It Works";
+"onboarding.howItWorks.subtitle" = "Realistic AI Conversations";
+"onboarding.howItWorks.description" = "Tap the emergency button to start an AI-generated phone call that sounds like you're talking to a friend, family member, or colleague.";
+
+"onboarding.alwaysWithYou.title" = "Always With You";
+"onboarding.alwaysWithYou.subtitle" = "Quick & Discreet Activation";
+"onboarding.alwaysWithYou.description" = "One tap is all it takes. The app works instantly without internet and looks like a real phone call to anyone nearby.";
+
+"onboarding.privacy.title" = "Your Privacy Matters";
+"onboarding.privacy.subtitle" = "Secure & Private";
+"onboarding.privacy.description" = "Your conversations are never recorded or stored. All AI processing happens locally on your device for maximum privacy.";
+
+"onboarding.ageVerification.title" = "Age Verification";
+"onboarding.ageVerification.subtitle" = "18+ Only";
+"onboarding.ageVerification.description" = "This app is designed for users 18 and older due to safety-related content and features.";
+
+"onboarding.button.next" = "Next";
+"onboarding.button.back" = "Back";
+"onboarding.button.ageConfirm" = "I am 18 or older";
+"onboarding.button.ageReject" = "I am under 18";
+
+// MARK: - Main Interface
+"main.button.startSafetyCall" = "Start Safety Call";
+"main.button.settings" = "Settings";
+"main.button.contacts" = "Contacts";
+"main.button.help" = "Help";
+
+// MARK: - Emergency Call
+"call.incoming" = "Incoming call...";
+"call.contact.maya" = "Maya (Safety Companion)";
+"call.duration.format" = "%02d:%02d";
+"call.button.accept" = "Accept";
+"call.button.decline" = "Decline";
+"call.button.mute" = "Mute";
+"call.button.speaker" = "Speaker";
+"call.button.endCall" = "End Call";
+
+// MARK: - AI Voice Messages
+"ai.greeting.maya" = "Hey! How's your evening walk going?";
+"ai.message.weather" = "The weather looks really nice tonight.";
+"ai.message.checkIn" = "Are you doing okay?";
+"ai.message.stillHere" = "I'm still here with you.";
+"ai.message.howFar" = "How much further do you have to go?";
+"ai.message.letMeKnow" = "Let me know if you need anything.";
+"ai.message.stayOnLine" = "I'll stay on the line.";
+
+// MARK: - Emergency Contacts
+"contacts.title" = "Emergency Contacts";
+"contacts.add" = "Add Contact";
+"contacts.edit" = "Edit Contact";
+"contacts.delete" = "Delete Contact";
+"contacts.setPrimary" = "Set as Primary";
+"contacts.firstName" = "First Name";
+"contacts.lastName" = "Last Name";
+"contacts.phoneNumber" = "Phone Number";
+"contacts.relationship" = "Relationship";
+"contacts.notes" = "Notes";
+"contacts.isPrimary" = "Primary Contact";
+"contacts.receiveAlerts" = "Receive Emergency Alerts";
+"contacts.receiveLocation" = "Receive Location Updates";
+
+"contacts.relationship.family" = "Family";
+"contacts.relationship.friend" = "Friend";
+"contacts.relationship.partner" = "Partner";
+"contacts.relationship.colleague" = "Colleague";
+"contacts.relationship.roommate" = "Roommate";
+"contacts.relationship.neighbor" = "Neighbor";
+"contacts.relationship.other" = "Other";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.general" = "General";
+"settings.privacy" = "Privacy";
+"settings.emergency" = "Emergency";
+"settings.about" = "About";
+
+"settings.voice.title" = "Voice Preference";
+"settings.voice.maya" = "Maya";
+"settings.voice.friend" = "Friend";
+"settings.voice.family" = "Family";
+"settings.voice.professional" = "Professional";
+
+"settings.scenario.title" = "Default Scenario";
+"settings.scenario.walking" = "Walking Safety";
+"settings.scenario.transport" = "Public Transport";
+"settings.scenario.lateNight" = "Late Night";
+"settings.scenario.general" = "General";
+
+"settings.autoAnswer.title" = "Auto-Answer Delay";
+"settings.autoAnswer.description" = "Seconds before automatically answering emergency call";
+
+"settings.location.title" = "Location Sharing";
+"settings.location.description" = "Share location with emergency contacts when activated";
+
+"settings.notifications.title" = "Notifications";
+"settings.notifications.description" = "Allow emergency notifications";
+
+// MARK: - Permissions
+"permissions.location.title" = "Location Access";
+"permissions.location.description" = "Used to provide contextual safety information";
+"permissions.microphone.title" = "Microphone Access";
+"permissions.microphone.description" = "Used for realistic call simulation";
+"permissions.contacts.title" = "Contacts Access";
+"permissions.contacts.description" = "Used to set up emergency contacts";
+"permissions.notifications.title" = "Notifications";
+"permissions.notifications.description" = "Used for safety alerts and check-ins";
+
+// MARK: - Alerts and Errors
+"alert.error.title" = "Error";
+"alert.success.title" = "Success";
+"alert.warning.title" = "Warning";
+"alert.button.ok" = "OK";
+"alert.button.cancel" = "Cancel";
+"alert.button.retry" = "Retry";
+
+"error.location.unavailable" = "Location services unavailable";
+"error.microphone.unavailable" = "Microphone access required";
+"error.contacts.unavailable" = "Contacts access required";
+"error.storage.failed" = "Failed to save data";
+
+// MARK: - Notifications
+"notification.emergency.title" = "HerSignal Emergency Alert";
+"notification.emergency.body" = "Emergency activated at: %@";
+"notification.emergency.bodyNoLocation" = "Emergency activated - location unavailable";
+"notification.checkin.title" = "Safety Check-In";
+"notification.checkin.body" = "Are you still safe? Tap to confirm you're okay.";
+
+"notification.action.confirmSafe" = "I'm Safe";
+"notification.action.needHelp" = "Send Help";
+"notification.action.safeCheckin" = "I'm Safe";
+
+// MARK: - Legal and Disclaimers
+"legal.disclaimer.title" = "Important Disclaimer";
+"legal.disclaimer.message" = "HerSignal is a safety tool but cannot guarantee protection. For real emergencies, always contact local emergency services (911, 999, etc.).";
+"legal.privacy.title" = "Privacy Notice";
+"legal.privacy.message" = "Your privacy is our priority. All voice processing happens locally on your device. We never record, store, or transmit your conversations.";
+
+// MARK: - Accessibility
+"accessibility.emergencyButton" = "Emergency call button. Double tap to activate safety call.";
+"accessibility.muteButton" = "Mute button. Currently %@";
+"accessibility.speakerButton" = "Speaker button. Currently %@";
+"accessibility.endCallButton" = "End call button. Double tap to end emergency call.";
+"accessibility.muted" = "muted";
+"accessibility.unmuted" = "unmuted";
+"accessibility.speakerOn" = "on";
+"accessibility.speakerOff" = "off";
