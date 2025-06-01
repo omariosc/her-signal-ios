@@ -66,15 +66,18 @@ struct FaceTimeCallView: View {
                         Text(selectedContact)
                             .font(.headline)
                             .foregroundColor(.white)
+                            .shadow(color: .black, radius: 2)
                         
                         if isCallActive {
                             Text(formatCallDuration(callDuration))
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.white.opacity(0.9))
+                                .shadow(color: .black, radius: 2)
                         } else {
                             Text("Connecting...")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.white.opacity(0.9))
+                                .shadow(color: .black, radius: 2)
                         }
                     }
                     
@@ -86,135 +89,162 @@ struct FaceTimeCallView: View {
                             .font(.title2)
                             .foregroundColor(.white)
                             .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.3))
+                            .background(Color.black.opacity(0.6))
                             .clipShape(Circle())
+                            .shadow(color: .black, radius: 4)
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
+                .background(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.4), Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 120)
+                    .ignoresSafeArea(edges: .top)
+                )
                 
                 Spacer()
                 
                 // Bottom control bar (FaceTime style)
-                HStack(spacing: 60) {
-                    // Mute button
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isMuted.toggle()
-                            
-                            // Haptic feedback
-                            let feedback = UIImpactFeedbackGenerator(style: .light)
-                            feedback.impactOccurred()
+                VStack(spacing: 20) {
+                    HStack(spacing: 60) {
+                        // Mute button
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isMuted.toggle()
+                                
+                                // Haptic feedback
+                                let feedback = UIImpactFeedbackGenerator(style: .light)
+                                feedback.impactOccurred()
+                            }
+                        }) {
+                            Image(systemName: isMuted ? "mic.slash.fill" : "mic.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(isMuted ? Color.red : Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                                .scaleEffect(isMuted ? 1.1 : 1.0)
+                                .shadow(color: .black, radius: 4)
                         }
-                    }) {
-                        Image(systemName: isMuted ? "mic.slash.fill" : "mic.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .frame(width: 60, height: 60)
-                            .background(isMuted ? Color.red : Color.white.opacity(0.2))
-                            .clipShape(Circle())
-                            .scaleEffect(isMuted ? 1.1 : 1.0)
-                    }
-                    
-                    // End call button
-                    Button(action: {
-                        endCall()
-                    }) {
-                        Image(systemName: "phone.down.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .frame(width: 60, height: 60)
-                            .background(Color.red)
-                            .clipShape(Circle())
-                    }
-                    
-                    // Camera toggle button (visual only - recording continues)
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isCameraOn.toggle()
-                            
-                            // Haptic feedback
-                            let feedback = UIImpactFeedbackGenerator(style: .light)
-                            feedback.impactOccurred()
+                        
+                        // End call button
+                        Button(action: {
+                            endCall()
+                        }) {
+                            Image(systemName: "phone.down.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .frame(width: 70, height: 70)
+                                .background(Color.red)
+                                .clipShape(Circle())
+                                .shadow(color: .black, radius: 6)
                         }
-                    }) {
-                        Image(systemName: isCameraOn ? "video.fill" : "video.slash.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .frame(width: 60, height: 60)
-                            .background(isCameraOn ? Color.white.opacity(0.2) : Color.red)
-                            .clipShape(Circle())
-                            .scaleEffect(isCameraOn ? 1.0 : 1.1)
+                        
+                        // Camera toggle button (visual only - recording continues)
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isCameraOn.toggle()
+                                
+                                // Haptic feedback
+                                let feedback = UIImpactFeedbackGenerator(style: .light)
+                                feedback.impactOccurred()
+                            }
+                        }) {
+                            Image(systemName: isCameraOn ? "video.fill" : "video.slash.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(isCameraOn ? Color.black.opacity(0.6) : Color.red)
+                                .clipShape(Circle())
+                                .scaleEffect(isCameraOn ? 1.0 : 1.1)
+                                .shadow(color: .black, radius: 4)
+                        }
                     }
                 }
                 .padding(.bottom, 50)
+                .background(
+                    LinearGradient(
+                        colors: [Color.clear, Color.black.opacity(0.4)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 180)
+                    .ignoresSafeArea(edges: .bottom)
+                )
                 
-                // Additional controls row (FaceTime style)
-                HStack(spacing: 40) {
-                    // Camera flip button
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            cameraService.switchCamera()
-                            isUsingFrontCamera.toggle()
-                            
-                            // Haptic feedback
-                            let feedback = UIImpactFeedbackGenerator(style: .light)
-                            feedback.impactOccurred()
+                    // Additional controls row (FaceTime style)
+                    HStack(spacing: 40) {
+                        // Camera flip button
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                cameraService.switchCamera()
+                                isUsingFrontCamera.toggle()
+                                
+                                // Haptic feedback
+                                let feedback = UIImpactFeedbackGenerator(style: .light)
+                                feedback.impactOccurred()
+                            }
+                        }) {
+                            Image(systemName: "camera.rotate.fill")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                                .frame(width: 50, height: 50)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                                .rotationEffect(.degrees(isUsingFrontCamera ? 0 : 180))
+                                .shadow(color: .black, radius: 4)
                         }
-                    }) {
-                        Image(systemName: "camera.rotate.fill")
-                            .font(.title3)
-                            .foregroundColor(.white)
+                        
+                        // Recording indicator
+                        Button(action: {
+                            // Show recording status
+                            let feedback = UINotificationFeedbackGenerator()
+                            feedback.notificationOccurred(.success)
+                        }) {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                                    .opacity(cameraService.isRecording ? 1.0 : 0.3)
+                                    .scaleEffect(cameraService.isRecording ? 1.0 : 0.5)
+                                    .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: cameraService.isRecording)
+                                
+                                Text("REC")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(cameraService.isRecording ? .red : .white)
+                            }
                             .frame(width: 50, height: 50)
-                            .background(Color.white.opacity(0.2))
+                            .background(Color.black.opacity(0.6))
                             .clipShape(Circle())
-                            .rotationEffect(.degrees(isUsingFrontCamera ? 0 : 180))
-                    }
-                    
-                    // Recording indicator
-                    Button(action: {
-                        // Show recording status
-                        let feedback = UINotificationFeedbackGenerator()
-                        feedback.notificationOccurred(.success)
-                    }) {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 8, height: 8)
-                                .opacity(cameraService.isRecording ? 1.0 : 0.3)
-                                .scaleEffect(cameraService.isRecording ? 1.0 : 0.5)
-                                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: cameraService.isRecording)
-                            
-                            Text("REC")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(cameraService.isRecording ? .red : .white.opacity(0.5))
+                            .shadow(color: .black, radius: 4)
                         }
-                        .frame(width: 50, height: 50)
-                        .background(Color.black.opacity(0.3))
-                        .clipShape(Circle())
-                    }
-                    
-                    // Speaker button
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isSpeakerOn.toggle()
-                            
-                            // Haptic feedback
-                            let feedback = UIImpactFeedbackGenerator(style: .light)
-                            feedback.impactOccurred()
+                        
+                        // Speaker button
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isSpeakerOn.toggle()
+                                
+                                // Haptic feedback
+                                let feedback = UIImpactFeedbackGenerator(style: .light)
+                                feedback.impactOccurred()
+                            }
+                        }) {
+                            Image(systemName: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.fill")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                                .frame(width: 50, height: 50)
+                                .background(isSpeakerOn ? Color.blue : Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                                .scaleEffect(isSpeakerOn ? 1.1 : 1.0)
+                                .shadow(color: .black, radius: 4)
                         }
-                    }) {
-                        Image(systemName: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.fill")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .frame(width: 50, height: 50)
-                            .background(isSpeakerOn ? Color.blue : Color.white.opacity(0.2))
-                            .clipShape(Circle())
-                            .scaleEffect(isSpeakerOn ? 1.1 : 1.0)
                     }
-                }
-                .padding(.bottom, 30)
+                    .padding(.bottom, 30)
             }
         }
         .statusBarHidden()

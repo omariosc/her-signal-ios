@@ -161,26 +161,44 @@ class CameraService: NSObject, ObservableObject {
     
     func stopRecording() {
         recordingQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            let frontURL = self.frontWriter?.outputURL
-            let backURL = self.backWriter?.outputURL
-            
-            self.frontWriter?.finishWriting {
-                if let url = frontURL {
-                    self.saveVideoToPhotos(url: url, label: "Front Camera")
-                }
-            }
-            
-            self.backWriter?.finishWriting {
-                if let url = backURL {
-                    self.saveVideoToPhotos(url: url, label: "Back Camera")
-                }
-            }
+            guard let self = self, self.isRecording else { return }
             
             DispatchQueue.main.async {
                 self.isRecording = false
             }
+            
+            let frontURL = self.frontWriter?.outputURL
+            let backURL = self.backWriter?.outputURL
+            
+            // Safely finish front camera recording
+            if let frontWriter = self.frontWriter, frontWriter.status == .writing {
+                frontWriter.finishWriting {
+                    if frontWriter.status == .completed, let url = frontURL {
+                        self.saveVideoToPhotos(url: url, label: "Front Camera")
+                    } else {
+                        print("❌ Front camera recording failed with status: \(frontWriter.status.rawValue)")
+                    }
+                }
+            }
+            
+            // Safely finish back camera recording  
+            if let backWriter = self.backWriter, backWriter.status == .writing {
+                backWriter.finishWriting {
+                    if backWriter.status == .completed, let url = backURL {
+                        self.saveVideoToPhotos(url: url, label: "Back Camera")
+                    } else {
+                        print("❌ Back camera recording failed with status: \(backWriter.status.rawValue)")
+                    }
+                }
+            }
+            
+            // Clean up
+            self.frontWriter = nil
+            self.backWriter = nil
+            self.frontWriterInput = nil
+            self.backWriterInput = nil
+            self.frontAudioWriterInput = nil
+            self.backAudioWriterInput = nil
         }
     }
     
@@ -331,10 +349,11 @@ struct DualCameraPreviewView: View {
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.white, lineWidth: 2)
+                                .stroke(Color.white, lineWidth: 3)
                         )
+                        .shadow(color: .black, radius: 6, x: 0, y: 2)
                         .padding(.trailing, 20)
-                        .padding(.top, 60)
+                        .padding(.top, 80)
                 }
                 
                 Spacer()
