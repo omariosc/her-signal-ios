@@ -10,76 +10,120 @@ import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+    @State private var showingEmergencyCall = false
+    
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+        ZStack {
+            // Main interface
+            VStack(spacing: 30) {
+                // App logo and title
+                VStack(spacing: 16) {
+                    Image(systemName: "shield.checkered")
+                        .font(.system(size: 60))
+                        .foregroundColor(.purple)
+                    
+                    Text("HerSignal")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Your AI Safety Companion")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // Emergency activation button
+                Button(action: {
+                    triggerEmergencyCall()
+                }) {
+                    VStack(spacing: 12) {
+                        Image(systemName: "phone.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.white)
+                        
+                        Text("Start Safety Call")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
                     }
+                    .frame(width: 200, height: 200)
+                    .background(
+                        Circle()
+                            .fill(LinearGradient(
+                                colors: [.purple, .pink],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                    )
+                    .scaleEffect(showingEmergencyCall ? 0.95 : 1.0)
+                    .animation(.easeInOut(duration: 0.1), value: showingEmergencyCall)
                 }
-                .onDelete(perform: deleteItems)
+                .buttonStyle(PlainButtonStyle())
+                
+                Spacer()
+                
+                // Quick access buttons
+                HStack(spacing: 20) {
+                    QuickActionButton(
+                        icon: "gearshape.fill",
+                        title: "Settings",
+                        action: { /* Navigate to settings */ }
+                    )
+                    
+                    QuickActionButton(
+                        icon: "person.2.fill",
+                        title: "Contacts",
+                        action: { /* Navigate to emergency contacts */ }
+                    )
+                    
+                    QuickActionButton(
+                        icon: "questionmark.circle.fill",
+                        title: "Help",
+                        action: { /* Show help/tutorial */ }
+                    )
+                }
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-            Text("Select an item")
+            .padding()
+        }
+        .navigationBarHidden(true)
+        .fullScreenCover(isPresented: $showingEmergencyCall) {
+            FaceTimeCallView()
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
+    
+    private func triggerEmergencyCall() {
+        // Add haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
+        
+        showingEmergencyCall = true
     }
 }
 
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
+struct QuickActionButton: View {
+    let icon: String
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(.purple)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.primary)
+            }
+            .frame(width: 70, height: 70)
+            .background(Color.purple.opacity(0.1))
+            .cornerRadius(12)
+        }
+    }
+}
 
 #Preview {
     ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
