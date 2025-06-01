@@ -2,8 +2,13 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var permissionService = PermissionService()
     @State private var showingEmergencyCall = false
     @State private var showingOnboarding = false
+    @State private var showingPermissions = false
+    @State private var showingSettings = false
+    @State private var showingContacts = false
+    @State private var showingHelp = false
     
     var body: some View {
         NavigationView {
@@ -20,10 +25,11 @@ struct ContentView: View {
                 VStack(spacing: 30) {
                     // App logo and title
                     VStack(spacing: 16) {
-                        Image(systemName: "shield.checkered")
-                            .font(.system(size: 60))
-                            .foregroundColor(.purple)
-                            .symbolEffect(.pulse)
+                        // Use custom app logo
+                        Image("HerSignal-Logo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 80, height: 80)
                         
                         Text("HerSignal")
                             .font(.largeTitle)
@@ -33,13 +39,37 @@ struct ContentView: View {
                         Text("Your AI Safety Companion")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
+                        
+                        // Permission status indicator
+                        if !permissionService.allPermissionsGranted {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                                
+                                Text("Setup Required")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.orange.opacity(0.1))
+                            .clipShape(Capsule())
+                            .onTapGesture {
+                                showingPermissions = true
+                            }
+                        }
                     }
                     
                     Spacer()
                     
                     // Emergency activation button
                     Button(action: {
-                        triggerEmergencyCall()
+                        if permissionService.cameraPermission == .granted && permissionService.microphonePermission == .granted {
+                            triggerEmergencyCall()
+                        } else {
+                            showingPermissions = true
+                        }
                     }) {
                         VStack(spacing: 12) {
                             Image(systemName: "phone.fill")
@@ -73,19 +103,31 @@ struct ContentView: View {
                         QuickActionButton(
                             icon: "gearshape.fill",
                             title: "Settings",
-                            action: { /* Navigate to settings */ }
+                            action: { 
+                                showingSettings = true
+                                let feedback = UIImpactFeedbackGenerator(style: .light)
+                                feedback.impactOccurred()
+                            }
                         )
                         
                         QuickActionButton(
                             icon: "person.2.fill",
                             title: "Contacts",
-                            action: { /* Navigate to emergency contacts */ }
+                            action: { 
+                                showingContacts = true
+                                let feedback = UIImpactFeedbackGenerator(style: .light)
+                                feedback.impactOccurred()
+                            }
                         )
                         
                         QuickActionButton(
                             icon: "questionmark.circle.fill",
                             title: "Help",
-                            action: { /* Show help/tutorial */ }
+                            action: { 
+                                showingHelp = true
+                                let feedback = UIImpactFeedbackGenerator(style: .light)
+                                feedback.impactOccurred()
+                            }
                         )
                     }
                     .padding(.bottom, 30)
@@ -95,22 +137,54 @@ struct ContentView: View {
             .navigationBarHidden(true)
         }
         .fullScreenCover(isPresented: $showingEmergencyCall) {
-            EmergencyCallView()
+            FaceTimeCallView()
         }
         .fullScreenCover(isPresented: $showingOnboarding) {
             OnboardingView()
         }
+        .fullScreenCover(isPresented: $showingPermissions) {
+            PermissionRequestView {
+                showingPermissions = false
+                permissionService.checkAllPermissions()
+            }
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
+                .environmentObject(permissionService)
+        }
+        .sheet(isPresented: $showingContacts) {
+            EmergencyContactsView()
+        }
+        .sheet(isPresented: $showingHelp) {
+            HelpView()
+        }
         .onAppear {
+            permissionService.checkAllPermissions()
+            
             if !appState.isOnboardingComplete {
                 showingOnboarding = true
+            } else if !permissionService.allPermissionsGranted {
+                // Show permissions if not all granted
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    showingPermissions = true
+                }
+            }
+        }
+        .onChange(of: appState.isOnboardingComplete) { completed in
+            if completed && !permissionService.allPermissionsGranted {
+                showingPermissions = true
             }
         }
     }
     
     private func triggerEmergencyCall() {
         // Add haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
         impactFeedback.impactOccurred()
+        
+        // Trigger notification feedback
+        let notificationFeedback = UINotificationFeedbackGenerator()
+        notificationFeedback.notificationOccurred(.warning)
         
         appState.activateEmergencyMode()
         showingEmergencyCall = true

@@ -8,39 +8,58 @@
 import SwiftUI
 import AVFoundation
 import Combine
+import Photos
 
 class CameraService: NSObject, ObservableObject {
-    @Published var session = AVCaptureSession()
+    @Published var frontSession = AVCaptureSession()
+    @Published var backSession = AVCaptureSession()
     @Published var isRecording = false
     @Published var hasPermission = false
+    @Published var currentCamera: CameraPosition = .front
+    
+    enum CameraPosition {
+        case front, back
+    }
     
     private var frontCameraInput: AVCaptureDeviceInput?
     private var backCameraInput: AVCaptureDeviceInput?
-    private var currentCameraInput: AVCaptureDeviceInput?
     
     private var frontVideoOutput: AVCaptureVideoDataOutput?
     private var backVideoOutput: AVCaptureVideoDataOutput?
-    private var audioOutput: AVCaptureAudioDataOutput?
+    private var audioInput: AVCaptureDeviceInput?
     
     private var frontWriter: AVAssetWriter?
     private var backWriter: AVAssetWriter?
     private var frontWriterInput: AVAssetWriterInput?
     private var backWriterInput: AVAssetWriterInput?
-    private var audioWriterInput: AVAssetWriterInput?
+    private var frontAudioWriterInput: AVAssetWriterInput?
+    private var backAudioWriterInput: AVAssetWriterInput?
     
     private let sessionQueue = DispatchQueue(label: "camera.session.queue")
     private let recordingQueue = DispatchQueue(label: "camera.recording.queue")
     
     override init() {
         super.init()
-        requestCameraPermission()
-        setupSession()
+        checkCameraPermission()
     }
     
     func requestCameraPermission() {
         AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
             DispatchQueue.main.async {
                 self?.hasPermission = granted
+                if granted {
+                    self?.setupSession()
+                }
+            }
+        }
+    }
+    
+    func checkCameraPermission() {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        DispatchQueue.main.async {
+            self.hasPermission = (status == .authorized)
+            if self.hasPermission {
+                self.setupSession()
             }
         }
     }
@@ -49,38 +68,38 @@ class CameraService: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
-            self.session.beginConfiguration()
-            
-            // Setup front camera
+            // Setup front camera session
+            self.frontSession.beginConfiguration()
             if let frontDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
                let frontInput = try? AVCaptureDeviceInput(device: frontDevice) {
                 self.frontCameraInput = frontInput
-            }
-            
-            // Setup back camera
-            if let backDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-               let backInput = try? AVCaptureDeviceInput(device: backDevice) {
-                self.backCameraInput = backInput
-            }
-            
-            // Start with front camera
-            if let frontInput = self.frontCameraInput {
-                if self.session.canAddInput(frontInput) {
-                    self.session.addInput(frontInput)
-                    self.currentCameraInput = frontInput
+                if self.frontSession.canAddInput(frontInput) {
+                    self.frontSession.addInput(frontInput)
                 }
             }
             
-            // Setup video outputs
-            self.setupVideoOutputs()
+            // Setup back camera session
+            self.backSession.beginConfiguration()
+            if let backDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+               let backInput = try? AVCaptureDeviceInput(device: backDevice) {
+                self.backCameraInput = backInput
+                if self.backSession.canAddInput(backInput) {
+                    self.backSession.addInput(backInput)
+                }
+            }
             
-            // Setup audio
+            // Setup audio for both sessions
             self.setupAudio()
             
-            self.session.commitConfiguration()
+            // Setup video outputs for both sessions
+            self.setupVideoOutputs()
+            
+            self.frontSession.commitConfiguration()
+            self.backSession.commitConfiguration()
             
             DispatchQueue.main.async {
-                self.session.startRunning()
+                self.frontSession.startRunning()
+                self.backSession.startRunning()
             }
         }
     }
@@ -92,47 +111,40 @@ class CameraService: NSObject, ObservableObject {
         frontVideoOutput?.setSampleBufferDelegate(self, queue: recordingQueue)
         backVideoOutput?.setSampleBufferDelegate(self, queue: recordingQueue)
         
-        if let frontOutput = frontVideoOutput, session.canAddOutput(frontOutput) {
-            session.addOutput(frontOutput)
+        if let frontOutput = frontVideoOutput, frontSession.canAddOutput(frontOutput) {
+            frontSession.addOutput(frontOutput)
+        }
+        
+        if let backOutput = backVideoOutput, backSession.canAddOutput(backOutput) {
+            backSession.addOutput(backOutput)
         }
     }
     
     private func setupAudio() {
         guard let audioDevice = AVCaptureDevice.default(for: .audio),
-              let audioInput = try? AVCaptureDeviceInput(device: audioDevice) else { return }
+              let audioInputDevice = try? AVCaptureDeviceInput(device: audioDevice) else { return }
         
-        if session.canAddInput(audioInput) {
-            session.addInput(audioInput)
+        self.audioInput = audioInputDevice
+        
+        // Add audio to both sessions
+        if frontSession.canAddInput(audioInputDevice) {
+            frontSession.addInput(audioInputDevice)
         }
         
-        audioOutput = AVCaptureAudioDataOutput()
-        audioOutput?.setSampleBufferDelegate(self, queue: recordingQueue)
-        
-        if let audioOutput = audioOutput, session.canAddOutput(audioOutput) {
-            session.addOutput(audioOutput)
+        if backSession.canAddInput(audioInputDevice) {
+            backSession.addInput(audioInputDevice)
         }
     }
     
     func switchCamera() {
-        sessionQueue.async { [weak self] in
+        DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            
-            self.session.beginConfiguration()
-            
-            if let currentInput = self.currentCameraInput {
-                self.session.removeInput(currentInput)
-            }
-            
-            // Switch between front and back
-            let newInput = (self.currentCameraInput == self.frontCameraInput) ? self.backCameraInput : self.frontCameraInput
-            
-            if let newInput = newInput, self.session.canAddInput(newInput) {
-                self.session.addInput(newInput)
-                self.currentCameraInput = newInput
-            }
-            
-            self.session.commitConfiguration()
+            self.currentCamera = (self.currentCamera == .front) ? .back : .front
         }
+    }
+    
+    var currentSession: AVCaptureSession {
+        return currentCamera == .front ? frontSession : backSession
     }
     
     func startRecording() {
@@ -151,8 +163,20 @@ class CameraService: NSObject, ObservableObject {
         recordingQueue.async { [weak self] in
             guard let self = self else { return }
             
-            self.frontWriter?.finishWriting { }
-            self.backWriter?.finishWriting { }
+            let frontURL = self.frontWriter?.outputURL
+            let backURL = self.backWriter?.outputURL
+            
+            self.frontWriter?.finishWriting {
+                if let url = frontURL {
+                    self.saveVideoToPhotos(url: url, label: "Front Camera")
+                }
+            }
+            
+            self.backWriter?.finishWriting {
+                if let url = backURL {
+                    self.saveVideoToPhotos(url: url, label: "Back Camera")
+                }
+            }
             
             DispatchQueue.main.async {
                 self.isRecording = false
@@ -160,40 +184,82 @@ class CameraService: NSObject, ObservableObject {
         }
     }
     
+    private func saveVideoToPhotos(url: URL, label: String) {
+        PHPhotoLibrary.requestAuthorization { status in
+            if status == .authorized {
+                PHPhotoLibrary.shared().performChanges({
+                    let request = PHAssetCreationRequest.forAsset()
+                    request.addResource(with: .video, fileURL: url, options: nil)
+                }) { success, error in
+                    if success {
+                        print("✅ \(label) video saved to Photos app")
+                    } else if let error = error {
+                        print("❌ Error saving \(label) video: \(error.localizedDescription)")
+                    }
+                }
+            } else {
+                print("❌ Photo library access denied")
+            }
+        }
+    }
+    
     private func setupRecording() {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let timestamp = Date().timeIntervalSince1970
         
-        // Setup front camera recording
-        let frontURL = documentsPath.appendingPathComponent("front_\(Date().timeIntervalSince1970).mp4")
-        frontWriter = try? AVAssetWriter(url: frontURL, fileType: .mp4)
+        // Create HerSignal folder if it doesn't exist
+        let herSignalFolder = documentsPath.appendingPathComponent("HerSignal_Recordings")
+        try? FileManager.default.createDirectory(at: herSignalFolder, withIntermediateDirectories: true)
         
-        let frontVideoSettings: [String: Any] = [
+        let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: 1080,
             AVVideoHeightKey: 1920
         ]
         
-        frontWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: frontVideoSettings)
+        let audioSettings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVSampleRateKey: 44100,
+            AVNumberOfChannelsKey: 2
+        ]
+        
+        // Setup front camera recording
+        let frontURL = herSignalFolder.appendingPathComponent("front_\(timestamp).mp4")
+        frontWriter = try? AVAssetWriter(url: frontURL, fileType: .mp4)
+        
+        frontWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         frontWriterInput?.expectsMediaDataInRealTime = true
         
-        if let frontWriter = frontWriter, let frontWriterInput = frontWriterInput {
-            if frontWriter.canAdd(frontWriterInput) {
+        frontAudioWriterInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+        frontAudioWriterInput?.expectsMediaDataInRealTime = true
+        
+        if let frontWriter = frontWriter {
+            if let frontWriterInput = frontWriterInput, frontWriter.canAdd(frontWriterInput) {
                 frontWriter.add(frontWriterInput)
+            }
+            if let frontAudioWriterInput = frontAudioWriterInput, frontWriter.canAdd(frontAudioWriterInput) {
+                frontWriter.add(frontAudioWriterInput)
             }
             frontWriter.startWriting()
             frontWriter.startSession(atSourceTime: CMTime.zero)
         }
         
-        // Setup back camera recording (similar setup)
-        let backURL = documentsPath.appendingPathComponent("back_\(Date().timeIntervalSince1970).mp4")
+        // Setup back camera recording
+        let backURL = herSignalFolder.appendingPathComponent("back_\(timestamp).mp4")
         backWriter = try? AVAssetWriter(url: backURL, fileType: .mp4)
         
-        backWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: frontVideoSettings)
+        backWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         backWriterInput?.expectsMediaDataInRealTime = true
         
-        if let backWriter = backWriter, let backWriterInput = backWriterInput {
-            if backWriter.canAdd(backWriterInput) {
+        backAudioWriterInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+        backAudioWriterInput?.expectsMediaDataInRealTime = true
+        
+        if let backWriter = backWriter {
+            if let backWriterInput = backWriterInput, backWriter.canAdd(backWriterInput) {
                 backWriter.add(backWriterInput)
+            }
+            if let backAudioWriterInput = backAudioWriterInput, backWriter.canAdd(backAudioWriterInput) {
+                backWriter.add(backAudioWriterInput)
             }
             backWriter.startWriting()
             backWriter.startSession(atSourceTime: CMTime.zero)
@@ -213,13 +279,13 @@ extension CameraService: AVCaptureVideoDataOutputSampleBufferDelegate, AVCapture
             if let backWriterInput = backWriterInput, backWriterInput.isReadyForMoreMediaData {
                 backWriterInput.append(sampleBuffer)
             }
-        } else if output == audioOutput {
-            // Append audio to both recordings
-            if let frontWriterInput = frontWriterInput, frontWriterInput.isReadyForMoreMediaData {
-                frontWriterInput.append(sampleBuffer)
+        } else {
+            // Handle audio from both sessions
+            if let frontAudioWriterInput = frontAudioWriterInput, frontAudioWriterInput.isReadyForMoreMediaData {
+                frontAudioWriterInput.append(sampleBuffer)
             }
-            if let backWriterInput = backWriterInput, backWriterInput.isReadyForMoreMediaData {
-                backWriterInput.append(sampleBuffer)
+            if let backAudioWriterInput = backAudioWriterInput, backAudioWriterInput.isReadyForMoreMediaData {
+                backAudioWriterInput.append(sampleBuffer)
             }
         }
     }
@@ -240,5 +306,67 @@ struct CameraPreviewView: UIViewRepresentable {
         return view
     }
     
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    func updateUIView(_ uiView: UIView, context: Context) {
+        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
+            previewLayer.session = session
+        }
+    }
+}
+
+struct DualCameraPreviewView: View {
+    @ObservedObject var cameraService: CameraService
+    
+    var body: some View {
+        ZStack {
+            CameraPreviewView(session: cameraService.currentSession)
+                .ignoresSafeArea()
+            
+            VStack {
+                HStack {
+                    Spacer()
+                    
+                    // Picture-in-picture preview of other camera
+                    CameraPreviewView(session: cameraService.currentCamera == .front ? cameraService.backSession : cameraService.frontSession)
+                        .frame(width: 120, height: 160)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white, lineWidth: 2)
+                        )
+                        .padding(.trailing, 20)
+                        .padding(.top, 60)
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 30) {
+                    Button(action: cameraService.switchCamera) {
+                        Image(systemName: "camera.rotate")
+                            .font(.title)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.black.opacity(0.6))
+                            .clipShape(Circle())
+                    }
+                    
+                    Button(action: {
+                        if cameraService.isRecording {
+                            cameraService.stopRecording()
+                        } else {
+                            cameraService.startRecording()
+                        }
+                    }) {
+                        Circle()
+                            .fill(cameraService.isRecording ? Color.red : Color.white)
+                            .frame(width: 80, height: 80)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white, lineWidth: 4)
+                            )
+                    }
+                }
+                .padding(.bottom, 50)
+            }
+        }
+    }
 }

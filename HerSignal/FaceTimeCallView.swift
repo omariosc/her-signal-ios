@@ -13,6 +13,7 @@ struct FaceTimeCallView: View {
     @State private var isCallActive = false
     @State private var isCameraOn = true
     @State private var isMuted = false
+    @State private var isSpeakerOn = false
     @State private var isUsingFrontCamera = true
     @State private var callDuration: TimeInterval = 0
     @State private var callTimer: Timer?
@@ -21,14 +22,40 @@ struct FaceTimeCallView: View {
     
     var body: some View {
         ZStack {
-            // Camera preview (full screen)
-            if cameraService.hasPermission && isCameraOn {
-                CameraPreviewView(session: cameraService.session)
-                    .ignoresSafeArea()
+            // Dual camera preview (full screen with PiP) - Always recording
+            if cameraService.hasPermission {
+                if isCameraOn {
+                    DualCameraPreviewView(cameraService: cameraService)
+                        .ignoresSafeArea()
+                } else {
+                    // Black overlay but still recording underneath
+                    ZStack {
+                        DualCameraPreviewView(cameraService: cameraService)
+                            .ignoresSafeArea()
+                            .opacity(0) // Hidden but still recording
+                        
+                        Color.black
+                            .ignoresSafeArea()
+                            .overlay(
+                                VStack {
+                                    Image(systemName: "video.slash.fill")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.white.opacity(0.3))
+                                    Text("Camera Off")
+                                        .font(.title2)
+                                        .foregroundColor(.white.opacity(0.3))
+                                }
+                            )
+                    }
+                }
             } else {
-                // Black background when camera is "off" (still recording)
                 Color.black
                     .ignoresSafeArea()
+                    .overlay(
+                        Text("Camera Access Required")
+                            .foregroundColor(.white)
+                            .font(.title2)
+                    )
             }
             
             // FaceTime UI overlay
@@ -68,42 +95,17 @@ struct FaceTimeCallView: View {
                 
                 Spacer()
                 
-                // Picture-in-picture for self view (FaceTime style)
-                HStack {
-                    Spacer()
-                    
-                    VStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 120, height: 160)
-                            .overlay(
-                                VStack {
-                                    if isCameraOn {
-                                        Text("You")
-                                            .font(.caption)
-                                            .foregroundColor(.white)
-                                    } else {
-                                        Image(systemName: "video.slash.fill")
-                                            .font(.title)
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                            )
-                            .onTapGesture {
-                                // Handle self-view tap (could show full screen self view)
-                            }
-                        
-                        Spacer()
-                    }
-                    .padding(.trailing, 20)
-                }
-                
                 // Bottom control bar (FaceTime style)
                 HStack(spacing: 60) {
                     // Mute button
                     Button(action: {
-                        isMuted.toggle()
-                        // Note: This is visual only, recording continues
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isMuted.toggle()
+                            
+                            // Haptic feedback
+                            let feedback = UIImpactFeedbackGenerator(style: .light)
+                            feedback.impactOccurred()
+                        }
                     }) {
                         Image(systemName: isMuted ? "mic.slash.fill" : "mic.fill")
                             .font(.title2)
@@ -111,6 +113,7 @@ struct FaceTimeCallView: View {
                             .frame(width: 60, height: 60)
                             .background(isMuted ? Color.red : Color.white.opacity(0.2))
                             .clipShape(Circle())
+                            .scaleEffect(isMuted ? 1.1 : 1.0)
                     }
                     
                     // End call button
@@ -125,10 +128,15 @@ struct FaceTimeCallView: View {
                             .clipShape(Circle())
                     }
                     
-                    // Camera toggle button
+                    // Camera toggle button (visual only - recording continues)
                     Button(action: {
-                        isCameraOn.toggle()
-                        // Note: This is visual only, recording continues
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isCameraOn.toggle()
+                            
+                            // Haptic feedback
+                            let feedback = UIImpactFeedbackGenerator(style: .light)
+                            feedback.impactOccurred()
+                        }
                     }) {
                         Image(systemName: isCameraOn ? "video.fill" : "video.slash.fill")
                             .font(.title2)
@@ -136,6 +144,7 @@ struct FaceTimeCallView: View {
                             .frame(width: 60, height: 60)
                             .background(isCameraOn ? Color.white.opacity(0.2) : Color.red)
                             .clipShape(Circle())
+                            .scaleEffect(isCameraOn ? 1.0 : 1.1)
                     }
                 }
                 .padding(.bottom, 50)
@@ -144,8 +153,14 @@ struct FaceTimeCallView: View {
                 HStack(spacing: 40) {
                     // Camera flip button
                     Button(action: {
-                        cameraService.switchCamera()
-                        isUsingFrontCamera.toggle()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            cameraService.switchCamera()
+                            isUsingFrontCamera.toggle()
+                            
+                            // Haptic feedback
+                            let feedback = UIImpactFeedbackGenerator(style: .light)
+                            feedback.impactOccurred()
+                        }
                     }) {
                         Image(systemName: "camera.rotate.fill")
                             .font(.title3)
@@ -153,26 +168,50 @@ struct FaceTimeCallView: View {
                             .frame(width: 50, height: 50)
                             .background(Color.white.opacity(0.2))
                             .clipShape(Circle())
+                            .rotationEffect(.degrees(isUsingFrontCamera ? 0 : 180))
                     }
                     
-                    // Effects button (placeholder)
-                    Button(action: {}) {
-                        Image(systemName: "face.smiling.fill")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .frame(width: 50, height: 50)
-                            .background(Color.white.opacity(0.2))
-                            .clipShape(Circle())
+                    // Recording indicator
+                    Button(action: {
+                        // Show recording status
+                        let feedback = UINotificationFeedbackGenerator()
+                        feedback.notificationOccurred(.success)
+                    }) {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
+                                .opacity(cameraService.isRecording ? 1.0 : 0.3)
+                                .scaleEffect(cameraService.isRecording ? 1.0 : 0.5)
+                                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: cameraService.isRecording)
+                            
+                            Text("REC")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(cameraService.isRecording ? .red : .white.opacity(0.5))
+                        }
+                        .frame(width: 50, height: 50)
+                        .background(Color.black.opacity(0.3))
+                        .clipShape(Circle())
                     }
                     
                     // Speaker button
-                    Button(action: {}) {
-                        Image(systemName: "speaker.wave.3.fill")
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isSpeakerOn.toggle()
+                            
+                            // Haptic feedback
+                            let feedback = UIImpactFeedbackGenerator(style: .light)
+                            feedback.impactOccurred()
+                        }
+                    }) {
+                        Image(systemName: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.fill")
                             .font(.title3)
                             .foregroundColor(.white)
                             .frame(width: 50, height: 50)
-                            .background(Color.white.opacity(0.2))
+                            .background(isSpeakerOn ? Color.blue : Color.white.opacity(0.2))
                             .clipShape(Circle())
+                            .scaleEffect(isSpeakerOn ? 1.1 : 1.0)
                     }
                 }
                 .padding(.bottom, 30)
@@ -197,13 +236,27 @@ struct FaceTimeCallView: View {
         callTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             callDuration += 1
         }
+        
+        // Haptic feedback for call start
+        let feedback = UINotificationFeedbackGenerator()
+        feedback.notificationOccurred(.success)
     }
     
     private func endCall() {
         isCallActive = false
         callTimer?.invalidate()
+        
+        // Stop recording
         cameraService.stopRecording()
-        presentationMode.wrappedValue.dismiss()
+        
+        // Haptic feedback for call end
+        let feedback = UINotificationFeedbackGenerator()
+        feedback.notificationOccurred(.warning)
+        
+        // Show confirmation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            presentationMode.wrappedValue.dismiss()
+        }
     }
     
     private func formatCallDuration(_ duration: TimeInterval) -> String {
