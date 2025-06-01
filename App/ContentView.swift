@@ -178,10 +178,12 @@ struct ContentView: View {
             
             if !appState.isOnboardingComplete {
                 showingOnboarding = true
-            } else if !permissionService.allPermissionsGranted {
-                // Show permissions if not all granted
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    showingPermissions = true
+            } else {
+                // Always check permissions when app appears
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if !permissionService.allPermissionsGranted {
+                        showingPermissions = true
+                    }
                 }
             }
         }

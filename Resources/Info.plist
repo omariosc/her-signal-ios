@@ -51,7 +51,7 @@
 	
 	<!-- Privacy Usage Descriptions -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>HerSignal needs microphone access to provide realistic call simulation and voice interaction during emergency situations. Your conversations are never recorded or stored.</string>
+	<string>HerSignal needs microphone access to provide realistic call simulation and voice interaction during emergency situations. Audio is recorded locally for safety evidence.</string>
 	
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>HerSignal uses your location to provide contextual safety information and can share it with emergency contacts if needed. Location data is only used during active safety sessions.</string>
@@ -62,11 +62,9 @@
 	<key>NSContactsUsageDescription</key>
 	<string>HerSignal needs access to your contacts to help you quickly set up emergency contacts who can be notified during safety situations.</string>
 	
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>HerSignal sends notifications to keep you informed about safety features and can alert your emergency contacts when needed.</string>
 	
 	<key>NSCameraUsageDescription</key>
-	<string>HerSignal may use the camera for future safety features like photo evidence capture during emergency situations.</string>
+	<string>HerSignal uses the camera to provide realistic emergency call simulation with dual camera recording for safety evidence. Your video is recorded locally for your protection.</string>
 	
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>HerSignal saves emergency call recordings to your photo library for safety documentation and evidence purposes.</string>

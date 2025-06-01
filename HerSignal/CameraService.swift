@@ -41,6 +41,7 @@ class CameraService: NSObject, ObservableObject {
     override init() {
         super.init()
         checkCameraPermission()
+        requestCameraPermission()
     }
     
     func requestCameraPermission() {
@@ -68,23 +69,37 @@ class CameraService: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
+            // Configure session quality
+            self.frontSession.sessionPreset = .high
+            self.backSession.sessionPreset = .high
+            
             // Setup front camera session
             self.frontSession.beginConfiguration()
-            if let frontDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
-               let frontInput = try? AVCaptureDeviceInput(device: frontDevice) {
-                self.frontCameraInput = frontInput
-                if self.frontSession.canAddInput(frontInput) {
-                    self.frontSession.addInput(frontInput)
+            if let frontDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) {
+                do {
+                    let frontInput = try AVCaptureDeviceInput(device: frontDevice)
+                    self.frontCameraInput = frontInput
+                    if self.frontSession.canAddInput(frontInput) {
+                        self.frontSession.addInput(frontInput)
+                        print("✅ Front camera input added successfully")
+                    }
+                } catch {
+                    print("❌ Front camera setup failed: \(error.localizedDescription)")
                 }
             }
             
             // Setup back camera session
             self.backSession.beginConfiguration()
-            if let backDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-               let backInput = try? AVCaptureDeviceInput(device: backDevice) {
-                self.backCameraInput = backInput
-                if self.backSession.canAddInput(backInput) {
-                    self.backSession.addInput(backInput)
+            if let backDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
+                do {
+                    let backInput = try AVCaptureDeviceInput(device: backDevice)
+                    self.backCameraInput = backInput
+                    if self.backSession.canAddInput(backInput) {
+                        self.backSession.addInput(backInput)
+                        print("✅ Back camera input added successfully")
+                    }
+                } catch {
+                    print("❌ Back camera setup failed: \(error.localizedDescription)")
                 }
             }
             
@@ -98,8 +113,14 @@ class CameraService: NSObject, ObservableObject {
             self.backSession.commitConfiguration()
             
             DispatchQueue.main.async {
-                self.frontSession.startRunning()
-                self.backSession.startRunning()
+                if !self.frontSession.isRunning {
+                    self.frontSession.startRunning()
+                    print("✅ Front camera session started")
+                }
+                if !self.backSession.isRunning {
+                    self.backSession.startRunning()
+                    print("✅ Back camera session started")
+                }
             }
         }
     }

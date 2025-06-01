@@ -6,8 +6,10 @@ class AppState: ObservableObject {
     @Published var hasLocationPermission = false
     @Published var hasMicrophonePermission = false
     @Published var hasNotificationPermission = false
+    @Published var hasCameraPermission = false
     @Published var isEmergencyMode = false
     
+    private var permissionService = PermissionService()
     private var cancellables = Set<AnyCancellable>()
     
     init() {
@@ -40,8 +42,13 @@ class AppState: ObservableObject {
     }
     
     private func checkPermissionStatus() {
-        // Check current permission status
-        // This will be implemented with actual permission checks
+        // Check current permission status using PermissionService
+        permissionService.checkAllPermissions()
+        
+        hasLocationPermission = permissionService.locationPermission == .granted
+        hasMicrophonePermission = permissionService.microphonePermission == .granted
+        hasNotificationPermission = permissionService.notificationPermission == .granted
+        hasCameraPermission = permissionService.cameraPermission == .granted
     }
     
     func completeOnboarding() {
@@ -58,5 +65,14 @@ class AppState: ObservableObject {
     
     func deactivateEmergencyMode() {
         isEmergencyMode = false
+    }
+    
+    func requestAllPermissions() async {
+        await permissionService.requestAllPermissions()
+        checkPermissionStatus()
+    }
+    
+    var allPermissionsGranted: Bool {
+        return hasCameraPermission && hasMicrophonePermission && hasLocationPermission && hasNotificationPermission
     }
 }

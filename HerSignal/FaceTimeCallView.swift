@@ -31,40 +31,152 @@ struct FaceTimeCallView: View {
     
     var body: some View {
         ZStack {
-            // Dual camera preview (full screen with PiP) - Always recording
-            if cameraService.hasPermission {
-                if isCameraOn {
-                    DualCameraPreviewView(cameraService: cameraService)
-                        .ignoresSafeArea()
-                } else {
-                    // Black overlay but still recording underneath
+            // Main call interface with placeholder for receiving video
+            ZStack {
+                // Background - simulated receiving video
+                if callState == .active {
+                    // Placeholder for receiving video feed with realistic video effect
                     ZStack {
-                        DualCameraPreviewView(cameraService: cameraService)
-                            .ignoresSafeArea()
-                            .opacity(0) // Hidden but still recording
+                        // Simulated video background
+                        LinearGradient(
+                            colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.6), Color.pink.opacity(0.4)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .ignoresSafeArea()
+                        .blur(radius: 8)
                         
-                        Color.black
-                            .ignoresSafeArea()
-                            .overlay(
-                                VStack {
-                                    Image(systemName: "video.slash.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(.white.opacity(0.3))
-                                    Text("Camera Off")
-                                        .font(.title2)
-                                        .foregroundColor(.white.opacity(0.3))
+                        // Moving pattern to simulate video
+                        Circle()
+                            .fill(Color.white.opacity(0.1))
+                            .frame(width: 200, height: 200)
+                            .offset(x: -100, y: -50)
+                            .animation(.easeInOut(duration: 3).repeatForever(autoreverses: true), value: callState)
+                        
+                        Circle()
+                            .fill(Color.white.opacity(0.05))
+                            .frame(width: 150, height: 150)
+                            .offset(x: 80, y: 100)
+                            .animation(.easeInOut(duration: 4).repeatForever(autoreverses: true), value: callState)
+                        
+                        // Person placeholder with more realistic appearance
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(LinearGradient(colors: [.purple.opacity(0.8), .pink.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .frame(width: 140, height: 140)
+                                    .blur(radius: 2)
+                                
+                                Circle()
+                                    .fill(LinearGradient(colors: [.purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .frame(width: 120, height: 120)
+                                    .overlay(
+                                        Text("👩🏻‍💼")
+                                            .font(.system(size: 50))
+                                    )
+                                    .scaleEffect(callState == .active ? 1.02 : 1.0)
+                                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: callState)
+                            }
+                            
+                            VStack(spacing: 4) {
+                                Text("Maya Rodriguez")
+                                    .font(.title2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                                    .shadow(color: .black, radius: 2)
+                                
+                                Text("Safety Companion")
+                                    .font(.subheadline)
+                                    .fontWeight(.light)
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .shadow(color: .black, radius: 1)
+                            }
+                        }
+                        
+                        // Video call indicators
+                        VStack {
+                            HStack {
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 8, height: 8)
+                                        .scaleEffect(callState == .active ? 1.0 : 0.5)
+                                        .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: callState)
+                                    
+                                    Text("HD")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                        .opacity(0.8)
                                 }
-                            )
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.black.opacity(0.6))
+                                .cornerRadius(8)
+                                .padding(.leading, 20)
+                                .padding(.top, 120)
+                                
+                                Spacer()
+                            }
+                            Spacer()
+                        }
+                    }
+                } else {
+                    Color.black
+                        .ignoresSafeArea()
+                }
+                
+                // Local camera preview (PiP style)
+                if cameraService.hasPermission {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            
+                            ZStack {
+                                if isCameraOn {
+                                    CameraPreviewView(session: cameraService.currentSession)
+                                        .frame(width: 120, height: 160)
+                                        .cornerRadius(12)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color.white, lineWidth: 3)
+                                        )
+                                        .shadow(color: .black, radius: 6, x: 0, y: 2)
+                                } else {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.black)
+                                        .frame(width: 120, height: 160)
+                                        .overlay(
+                                            VStack {
+                                                Image(systemName: "video.slash.fill")
+                                                    .font(.title2)
+                                                    .foregroundColor(.white.opacity(0.7))
+                                                Text("Camera Off")
+                                                    .font(.caption)
+                                                    .foregroundColor(.white.opacity(0.7))
+                                            }
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color.white, lineWidth: 3)
+                                        )
+                                        .shadow(color: .black, radius: 6, x: 0, y: 2)
+                                }
+                                
+                                // Still record even when "camera off"
+                                if !isCameraOn {
+                                    CameraPreviewView(session: cameraService.currentSession)
+                                        .frame(width: 120, height: 160)
+                                        .opacity(0)
+                                }
+                            }
+                            .padding(.trailing, 20)
+                            .padding(.top, 100)
+                        }
+                        
+                        Spacer()
                     }
                 }
-            } else {
-                Color.black
-                    .ignoresSafeArea()
-                    .overlay(
-                        Text("Camera Access Required")
-                            .foregroundColor(.white)
-                            .font(.title2)
-                    )
             }
             
             // FaceTime UI overlay
