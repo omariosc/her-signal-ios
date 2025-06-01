@@ -98,7 +98,6 @@
 	<array>
 		<string>audio</string>
 		<string>location</string>
-		<string>background-processing</string>
 	</array>
 	
 	<!-- URL Schemes -->
@@ -114,20 +113,6 @@
 		</dict>
 	</array>
 	
-	<!-- Supported Document Types -->
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>Emergency Contact</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.vcard</string>
-			</array>
-		</dict>
-	</array>
 	
 	<!-- App Category -->
 	<key>LSApplicationCategoryType</key>

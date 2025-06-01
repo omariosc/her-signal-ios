@@ -3,6 +3,7 @@ import AVFoundation
 import Photos
 import CoreLocation
 import UserNotifications
+import Contacts
 
 class PermissionService: ObservableObject {
     @Published var cameraPermission: PermissionStatus = .notDetermined
@@ -10,6 +11,7 @@ class PermissionService: ObservableObject {
     @Published var photoLibraryPermission: PermissionStatus = .notDetermined
     @Published var locationPermission: PermissionStatus = .notDetermined
     @Published var notificationPermission: PermissionStatus = .notDetermined
+    @Published var contactsPermission: PermissionStatus = .notDetermined
     
     @Published var allPermissionsGranted = false
     
@@ -32,6 +34,7 @@ class PermissionService: ObservableObject {
         await requestPhotoLibraryPermission()
         await requestLocationPermission()
         await requestNotificationPermission()
+        await requestContactsPermission()
         
         await MainActor.run {
             updateAllPermissionsStatus()
@@ -45,6 +48,7 @@ class PermissionService: ObservableObject {
         checkPhotoLibraryPermission()
         checkLocationPermission()
         checkNotificationPermission()
+        checkContactsPermission()
         updateAllPermissionsStatus()
     }
     
@@ -259,6 +263,50 @@ class PermissionService: ObservableObject {
         }
     }
     
+    // MARK: - Contacts Permission
+    
+    @MainActor
+    func requestContactsPermission() async {
+        let status = CNContactStore.authorizationStatus(for: .contacts)
+        
+        switch status {
+        case .notDetermined:
+            do {
+                let granted = try await CNContactStore().requestAccess(for: .contacts)
+                contactsPermission = granted ? .granted : .denied
+            } catch {
+                contactsPermission = .denied
+            }
+        case .authorized:
+            contactsPermission = .granted
+        case .denied:
+            contactsPermission = .denied
+        case .restricted:
+            contactsPermission = .restricted
+        @unknown default:
+            contactsPermission = .denied
+        }
+    }
+    
+    private func checkContactsPermission() {
+        let status = CNContactStore.authorizationStatus(for: .contacts)
+        
+        DispatchQueue.main.async {
+            switch status {
+            case .notDetermined:
+                self.contactsPermission = .notDetermined
+            case .authorized:
+                self.contactsPermission = .granted
+            case .denied:
+                self.contactsPermission = .denied
+            case .restricted:
+                self.contactsPermission = .restricted
+            @unknown default:
+                self.contactsPermission = .denied
+            }
+        }
+    }
+    
     // MARK: - Helper Methods
     
     private func updateAllPermissionsStatus() {
@@ -266,7 +314,8 @@ class PermissionService: ObservableObject {
                                microphonePermission == .granted &&
                                photoLibraryPermission == .granted &&
                                locationPermission == .granted &&
-                               notificationPermission == .granted
+                               notificationPermission == .granted &&
+                               contactsPermission == .granted
     }
     
     private func savePermissionPreferences() {
@@ -275,7 +324,8 @@ class PermissionService: ObservableObject {
             "microphone": microphonePermission == .granted,
             "photoLibrary": photoLibraryPermission == .granted,
             "location": locationPermission == .granted,
-            "notifications": notificationPermission == .granted
+            "notifications": notificationPermission == .granted,
+            "contacts": contactsPermission == .granted
         ]
         
         UserDefaults.standard.set(preferences, forKey: "HerSignal_Permissions")

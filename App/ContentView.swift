@@ -64,45 +64,72 @@ struct ContentView: View {
                     Spacer()
                     
                     // Emergency activation button
-                    Button(action: {
-                        if permissionService.cameraPermission == .granted && permissionService.microphonePermission == .granted {
+                    if permissionService.cameraPermission == .granted && permissionService.microphonePermission == .granted {
+                        Button(action: {
                             triggerEmergencyCall()
-                        } else {
-                            showingPermissions = true
+                        }) {
+                            VStack(spacing: 12) {
+                                Image(systemName: "phone.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.white)
+                                
+                                Text("Start Safety Call")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                            }
+                            .frame(width: 200, height: 200)
+                            .background(
+                                Circle()
+                                    .fill(LinearGradient(
+                                        colors: [.purple, .pink],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                            )
+                            .scaleEffect(showingEmergencyCall ? 0.95 : 1.0)
+                            .animation(.easeInOut(duration: 0.1), value: showingEmergencyCall)
+                            .shadow(color: .purple.opacity(0.3), radius: 10, x: 0, y: 5)
                         }
-                    }) {
-                        VStack(spacing: 12) {
-                            Image(systemName: "phone.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.white)
+                        .buttonStyle(PlainButtonStyle())
+                    } else {
+                        VStack(spacing: 16) {
+                            Text("Camera Access Required")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
                             
-                            Text("Start Safety Call")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                            Button(action: {
+                                showingPermissions = true
+                            }) {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "gear")
+                                        .font(.system(size: 30))
+                                        .foregroundColor(.white)
+                                    
+                                    Text("Allow Access")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                }
+                                .frame(width: 160, height: 60)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 30)
+                                        .fill(Color.orange)
+                                )
+                                .shadow(color: .orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .frame(width: 200, height: 200)
-                        .background(
-                            Circle()
-                                .fill(LinearGradient(
-                                    colors: [.purple, .pink],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ))
-                        )
-                        .scaleEffect(showingEmergencyCall ? 0.95 : 1.0)
-                        .animation(.easeInOut(duration: 0.1), value: showingEmergencyCall)
-                        .shadow(color: .purple.opacity(0.3), radius: 10, x: 0, y: 5)
                     }
-                    .buttonStyle(PlainButtonStyle())
                     
                     Spacer()
                     
                     // Quick access buttons
                     HStack(spacing: 20) {
                         QuickActionButton(
-                            icon: "gearshape.fill",
-                            title: "Settings",
+                            icon: "person.circle.fill",
+                            title: "Profile",
                             action: { 
                                 showingSettings = true
                                 let feedback = UIImpactFeedbackGenerator(style: .light)
@@ -120,15 +147,6 @@ struct ContentView: View {
                             }
                         )
                         
-                        QuickActionButton(
-                            icon: "questionmark.circle.fill",
-                            title: "Help",
-                            action: { 
-                                showingHelp = true
-                                let feedback = UIImpactFeedbackGenerator(style: .light)
-                                feedback.impactOccurred()
-                            }
-                        )
                     }
                     .padding(.bottom, 30)
                 }
@@ -149,14 +167,11 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView()
+            ProfileView()
                 .environmentObject(permissionService)
         }
         .sheet(isPresented: $showingContacts) {
             EmergencyContactsView()
-        }
-        .sheet(isPresented: $showingHelp) {
-            HelpView()
         }
         .onAppear {
             permissionService.checkAllPermissions()

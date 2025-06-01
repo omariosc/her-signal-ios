@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import AVKit
 
 struct FaceTimeCallView: View {
     @StateObject private var cameraService = CameraService()
@@ -18,7 +19,15 @@ struct FaceTimeCallView: View {
     @State private var callDuration: TimeInterval = 0
     @State private var callTimer: Timer?
     @State private var selectedContact = "Maya (Safety Companion)"
+    @State private var callState: CallState = .connecting
+    @State private var showingMinimized = false
     @Environment(\.presentationMode) var presentationMode
+    
+    enum CallState {
+        case connecting
+        case active
+        case ended
+    }
     
     var body: some View {
         ZStack {
@@ -68,13 +77,19 @@ struct FaceTimeCallView: View {
                             .foregroundColor(.white)
                             .shadow(color: .black, radius: 2)
                         
-                        if isCallActive {
+                        switch callState {
+                        case .connecting:
+                            Text("Connecting...")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.9))
+                                .shadow(color: .black, radius: 2)
+                        case .active:
                             Text(formatCallDuration(callDuration))
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.9))
                                 .shadow(color: .black, radius: 2)
-                        } else {
-                            Text("Connecting...")
+                        case .ended:
+                            Text("Call Ended")
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.9))
                                 .shadow(color: .black, radius: 2)
@@ -83,9 +98,14 @@ struct FaceTimeCallView: View {
                     
                     Spacer()
                     
-                    // Minimize button (FaceTime style)
-                    Button(action: {}) {
-                        Image(systemName: "minus")
+                    // Minimize/PiP button (FaceTime style)
+                    Button(action: {
+                        showingMinimized.toggle()
+                        // In a real app, this would minimize to PiP
+                        let feedback = UIImpactFeedbackGenerator(style: .light)
+                        feedback.impactOccurred()
+                    }) {
+                        Image(systemName: showingMinimized ? "rectangle.inset.filled" : "minus")
                             .font(.title2)
                             .foregroundColor(.white)
                             .frame(width: 44, height: 44)
@@ -224,25 +244,8 @@ struct FaceTimeCallView: View {
                             .shadow(color: .black, radius: 4)
                         }
                         
-                        // Speaker button
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isSpeakerOn.toggle()
-                                
-                                // Haptic feedback
-                                let feedback = UIImpactFeedbackGenerator(style: .light)
-                                feedback.impactOccurred()
-                            }
-                        }) {
-                            Image(systemName: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.fill")
-                                .font(.title3)
-                                .foregroundColor(.white)
-                                .frame(width: 50, height: 50)
-                                .background(isSpeakerOn ? Color.blue : Color.black.opacity(0.6))
-                                .clipShape(Circle())
-                                .scaleEffect(isSpeakerOn ? 1.1 : 1.0)
-                                .shadow(color: .black, radius: 4)
-                        }
+                        // Audio device picker button
+                        AudioDevicePickerButton()
                     }
                     .padding(.bottom, 30)
             }
@@ -257,14 +260,20 @@ struct FaceTimeCallView: View {
     }
     
     private func startCall() {
-        isCallActive = true
+        callState = .connecting
         
         // Start dual camera recording immediately
         cameraService.startRecording()
         
-        // Start call timer
-        callTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            callDuration += 1
+        // Simulate connection delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            callState = .active
+            isCallActive = true
+            
+            // Start call timer
+            callTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                callDuration += 1
+            }
         }
         
         // Haptic feedback for call start
@@ -273,6 +282,7 @@ struct FaceTimeCallView: View {
     }
     
     private func endCall() {
+        callState = .ended
         isCallActive = false
         callTimer?.invalidate()
         
@@ -283,8 +293,8 @@ struct FaceTimeCallView: View {
         let feedback = UINotificationFeedbackGenerator()
         feedback.notificationOccurred(.warning)
         
-        // Show confirmation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // Show "Call Ended" briefly, then dismiss
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             presentationMode.wrappedValue.dismiss()
         }
     }
@@ -293,6 +303,129 @@ struct FaceTimeCallView: View {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+struct AudioDevicePickerButton: View {
+    @State private var showingAudioPicker = false
+    
+    var body: some View {
+        Button(action: {
+            showingAudioPicker = true
+        }) {
+            Image(systemName: "speaker.wave.3.fill")
+                .font(.title3)
+                .foregroundColor(.white)
+                .frame(width: 50, height: 50)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Circle())
+                .shadow(color: .black, radius: 4)
+        }
+        .sheet(isPresented: $showingAudioPicker) {
+            AudioDevicePickerView()
+        }
+    }
+}
+
+struct AudioDevicePickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var availableDevices = [
+        AudioDevice(name: "iPhone", type: .builtin, isSelected: true),
+        AudioDevice(name: "Speaker", type: .speaker, isSelected: false),
+        AudioDevice(name: "AirPods Pro", type: .bluetooth, isSelected: false),
+        AudioDevice(name: "Car Audio", type: .carplay, isSelected: false)
+    ]
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach($availableDevices) { $device in
+                    AudioDeviceRow(device: $device) {
+                        // Update selection
+                        for index in availableDevices.indices {
+                            availableDevices[index].isSelected = false
+                        }
+                        device.isSelected = true
+                        
+                        // Apply audio route change
+                        switchToAudioDevice(device)
+                        
+                        // Dismiss after selection
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            dismiss()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Audio")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func switchToAudioDevice(_ device: AudioDevice) {
+        // In a real implementation, this would change the audio route
+        print("Switching to audio device: \(device.name)")
+        
+        let feedback = UIImpactFeedbackGenerator(style: .light)
+        feedback.impactOccurred()
+    }
+}
+
+struct AudioDevice: Identifiable {
+    let id = UUID()
+    let name: String
+    let type: AudioDeviceType
+    var isSelected: Bool
+    
+    enum AudioDeviceType {
+        case builtin
+        case speaker
+        case bluetooth
+        case carplay
+        
+        var icon: String {
+            switch self {
+            case .builtin: return "iphone"
+            case .speaker: return "speaker.wave.3"
+            case .bluetooth: return "airpods"
+            case .carplay: return "car"
+            }
+        }
+    }
+}
+
+struct AudioDeviceRow: View {
+    @Binding var device: AudioDevice
+    let onSelect: () -> Void
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack {
+                Image(systemName: device.type.icon)
+                    .foregroundColor(.blue)
+                    .frame(width: 24)
+                
+                Text(device.name)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if device.isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.blue)
+                        .fontWeight(.semibold)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

@@ -36,6 +36,12 @@ struct PermissionRequestView: View {
             description: "Receive important safety alerts and emergency contact notifications",
             icon: "bell.fill",
             color: .orange
+        ),
+        PermissionInfo(
+            title: "Contacts Access",
+            description: "Import emergency contacts from your address book for quick setup",
+            icon: "person.2.fill",
+            color: .purple
         )
     ]
     
@@ -173,6 +179,8 @@ struct PermissionRequestView: View {
                 await permissionService.requestLocationPermission()
             case 4:
                 await permissionService.requestNotificationPermission()
+            case 5:
+                await permissionService.requestContactsPermission()
             default:
                 break
             }
@@ -199,6 +207,7 @@ struct PermissionRequestView: View {
         case 2: return permissionService.photoLibraryPermission
         case 3: return permissionService.locationPermission
         case 4: return permissionService.notificationPermission
+        case 5: return permissionService.contactsPermission
         default: return .notDetermined
         }
     }
