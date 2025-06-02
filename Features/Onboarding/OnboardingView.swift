@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject var appState: AppState
     @State private var currentPage = 0
+    @State private var showingWelcome = true
     @Environment(\.dismiss) private var dismiss
     
     private let onboardingPages = [
@@ -44,85 +45,106 @@ struct OnboardingView: View {
     ]
     
     var body: some View {
-        ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [onboardingPages[currentPage].color.opacity(0.1), .clear],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Page content
-                TabView(selection: $currentPage) {
-                    ForEach(0..<onboardingPages.count, id: \.self) { index in
-                        OnboardingPageView(page: onboardingPages[index])
-                            .tag(index)
-                    }
+        if showingWelcome {
+            WelcomeScreenView {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    showingWelcome = false
                 }
-                .tabViewStyle(PageTabViewStyle())
-                .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
+            }
+        } else {
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [onboardingPages[currentPage].color.opacity(0.1), .clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
                 
-                // Custom page indicators
-                HStack(spacing: 8) {
-                    ForEach(0..<onboardingPages.count, id: \.self) { index in
-                        Circle()
-                            .fill(currentPage == index ? onboardingPages[currentPage].color : Color.gray.opacity(0.3))
-                            .frame(width: 8, height: 8)
-                            .scaleEffect(currentPage == index ? 1.2 : 1.0)
-                            .animation(.easeInOut(duration: 0.3), value: currentPage)
-                    }
-                }
-                .padding(.top, 20)
-                
-                // Navigation buttons
-                HStack {
-                    if currentPage > 0 {
-                        Button("Back") {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                currentPage -= 1
-                            }
+                VStack(spacing: 0) {
+                    // Skip button
+                    HStack {
+                        Spacer()
+                        
+                        Button("Skip") {
+                            completeOnboarding()
                         }
-                        .foregroundColor(onboardingPages[currentPage].color)
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 16, weight: .medium))
+                        .padding(.top, 20)
+                        .padding(.trailing, 30)
                     }
                     
-                    Spacer()
-                    
-                    if currentPage < onboardingPages.count - 1 {
-                        Button("Next") {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                currentPage += 1
-                            }
+                    // Page content
+                    TabView(selection: $currentPage) {
+                        ForEach(0..<onboardingPages.count, id: \.self) { index in
+                            OnboardingPageView(page: onboardingPages[index])
+                                .tag(index)
                         }
-                        .foregroundColor(onboardingPages[currentPage].color)
-                        .fontWeight(.semibold)
-                    } else {
-                        // Age verification and completion
-                        VStack(spacing: 12) {
-                            Button("I am 18 or older") {
-                                completeOnboarding()
+                    }
+                    .tabViewStyle(PageTabViewStyle())
+                    .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
+                    
+                    // Custom page indicators
+                    HStack(spacing: 8) {
+                        ForEach(0..<onboardingPages.count, id: \.self) { index in
+                            Circle()
+                                .fill(currentPage == index ? onboardingPages[currentPage].color : Color.gray.opacity(0.3))
+                                .frame(width: 8, height: 8)
+                                .scaleEffect(currentPage == index ? 1.2 : 1.0)
+                                .animation(.easeInOut(duration: 0.3), value: currentPage)
+                        }
+                    }
+                    .padding(.top, 20)
+                    
+                    // Navigation buttons
+                    HStack {
+                        if currentPage > 0 {
+                            Button("Back") {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    currentPage -= 1
+                                }
                             }
-                            .foregroundColor(.white)
+                            .foregroundColor(onboardingPages[currentPage].color)
+                        }
+                        
+                        Spacer()
+                        
+                        if currentPage < onboardingPages.count - 1 {
+                            Button("Next") {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    currentPage += 1
+                                }
+                            }
+                            .foregroundColor(onboardingPages[currentPage].color)
                             .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(onboardingPages[currentPage].color)
-                            )
-                            
-                            Button("I am under 18") {
-                                // Handle under-age users
-                                showAgeRestrictionAlert()
+                        } else {
+                            // Age verification and completion
+                            VStack(spacing: 12) {
+                                Button("I am 18 or older") {
+                                    completeOnboarding()
+                                }
+                                .foregroundColor(.white)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(onboardingPages[currentPage].color)
+                                )
+                                
+                                Button("I am under 18") {
+                                    // Handle under-age users
+                                    showAgeRestrictionAlert()
+                                }
+                                .foregroundColor(.gray)
+                                .font(.caption)
                             }
-                            .foregroundColor(.gray)
-                            .font(.caption)
                         }
                     }
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 30)
                 }
-                .padding(.horizontal, 30)
-                .padding(.vertical, 30)
             }
         }
     }
